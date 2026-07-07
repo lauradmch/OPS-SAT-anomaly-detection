@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Data & artifacts
+data/raw/
+data/processed/
+mlruns/
+mlartifacts/
+*.pkl
+*.pt
+*.h5
+reference/
+
+# Env / secrets
+.env
+
+# IDE
+.vscode/
+.DS_Store
