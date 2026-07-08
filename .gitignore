@@ -14,9 +14,15 @@ mlartifacts/
 *.h5
 *.pdf
 reference/
+feature_importances_full.csv
+notebooks/
 
 # Env / secrets
 .env
+
+# mlflow
+mlflow.db
+registry.py
 
 # IDE
 .vscode/

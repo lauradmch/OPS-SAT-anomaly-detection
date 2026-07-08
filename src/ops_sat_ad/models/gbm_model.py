@@ -5,7 +5,7 @@ import mlflow
 import lightgbm as lgb
 
 from ops_sat_ad.evaluate import evaluate
-from ops_sat_ad.baseline import load_dataset
+from ops_sat_ad.models.baseline import load_dataset
 
 FEATURE_COLS = [
     "mean", "var", "std", "kurtosis", "skew", "n_peaks",

@@ -5,8 +5,8 @@ import mlflow
 from sklearn.ensemble import IsolationForest
 
 from ops_sat_ad.evaluate import evaluate
-from ops_sat_ad.baseline import load_dataset
-from ops_sat_ad.gbm_model import FEATURE_COLS
+from ops_sat_ad.models.baseline import load_dataset
+from ops_sat_ad.models.gbm_model import FEATURE_COLS
 
 
 def run_isolation_forest(df, feature_cols=FEATURE_COLS, contamination=0.2):
