@@ -12,6 +12,7 @@ mlartifacts/
 *.pkl
 *.pt
 *.h5
+*.pdf
 reference/
 
 # Env / secrets
@@ -19,4 +20,4 @@ reference/
 
 # IDE
 .vscode/
-.DS_Store
+.DS_Storemlruns/
