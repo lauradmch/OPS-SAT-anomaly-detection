@@ -129,8 +129,25 @@ try:
         ap_c, roc_c = m(test.is_anomaly, test.combined)
         ap_p, _ = m(test.is_anomaly, test.peak_z.fillna(0))
         ap_r, _ = m(test.is_anomaly, test.reg_z.fillna(0))
-        mlflow.log_metrics({"test_aucpr_combined": ap_c, "test_aucroc_combined": roc_c,
-                            "test_aucpr_peak": ap_p, "test_aucpr_regional": ap_r})
+
+        # Overall test metrics for all columns
+        for col in ["combined", "peak_z", "reg_z", "len_z"]:
+            ap, roc = m(test.is_anomaly, test[col].fillna(0))
+            mlflow.log_metrics({f"test_aucpr_{col}": ap, f"test_aucroc_{col}": roc})
+
+        # Per-channel test metrics for combined
+        channel_metrics = {}
+        for ch, g in test.groupby("channel"):
+            if g.is_anomaly.nunique() < 2: continue
+            ap, roc = m(g.is_anomaly, g.combined.fillna(0))
+            channel_metrics.update({
+                f"test_aucpr_{ch}": ap,
+                f"test_aucroc_{ch}": roc,
+                f"n_test_{ch}": len(g),
+                f"n_anom_{ch}": int(g.is_anomaly.sum())
+            })
+        mlflow.log_metrics(channel_metrics)
+        
     print("logged. UI: mlflow ui --backend-store-uri sqlite:///mlflow.db")
 except Exception as e:
     print("MLflow logging skipped:", e)
