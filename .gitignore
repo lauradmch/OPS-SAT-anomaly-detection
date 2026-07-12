@@ -15,7 +15,7 @@ mlartifacts/
 *.pdf
 reference/
 feature_importances_full.csv
-notebooks/
+notebooks_t/
 
 # Env / secrets
 .env
