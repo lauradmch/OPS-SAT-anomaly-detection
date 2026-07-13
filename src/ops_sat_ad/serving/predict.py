@@ -1,7 +1,15 @@
 from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+
+import joblib
 import numpy as np
 import torch
-import os, joblib
+
+from ops_sat_ad.models.autoencoder import (
+    ChannelScaler, Conv1dAE, hp_score, recon_error, resample_to_L,
+)
 
 
 def ecdf_percentile(x: float, ref_sorted: np.ndarray) -> float:
@@ -16,11 +24,6 @@ def ecdf_percentile(x: float, ref_sorted: np.ndarray) -> float:
     rank = np.searchsorted(ref_sorted, x, side="right")
     return rank / len(ref_sorted)
 
-
-from dataclasses import dataclass
-from ops_sat_ad.models.autoencoder import (
-    Conv1dAE, ChannelScaler, resample_to_L, recon_error, hp_score,
-)
 
 @dataclass
 class Bundle:

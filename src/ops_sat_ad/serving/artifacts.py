@@ -3,7 +3,8 @@ from collections import defaultdict
 
 import numpy as np
 import torch
-import os, joblib
+import os
+import joblib
 
 from ops_sat_ad.models.autoencoder import (
     BOTTLENECK, Conv1dAE, ChannelScaler,
@@ -25,7 +26,9 @@ def _grouped_sorted(values, channels) -> dict[str, np.ndarray]:
 def build_bundle(weights_path=WEIGHTS_PATH, target_recall=0.80,
                  version="day5-ens-v1") -> Bundle:
     segments, meta = load_segment_arrays()
-    key = lambda r: (r.channel, r.segment)
+    
+    def key(r):
+        return (r.channel, r.segment)
 
     # 1. the SAME fit set the AE was trained on: nominal-train segments
     fit_rows = meta[(meta.is_train) & (meta.is_anomaly == 0)]
