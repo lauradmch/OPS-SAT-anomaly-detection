@@ -16,6 +16,7 @@ mlartifacts/
 reference/
 feature_importances_full.csv
 notebooks_t/
+roundtriptest.py
 
 # Env / secrets
 .env
@@ -27,3 +28,7 @@ registry.py
 # IDE
 .vscode/
 .DS_Storemlruns/
+
+# keep the exported serving model COMPLETE (override *.pt / *.pkl above)
+!model_artifact/**/*.pt
+!model_artifact/**/*.pkl
