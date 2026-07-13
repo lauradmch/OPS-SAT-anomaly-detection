@@ -38,6 +38,15 @@ def register(bundle_dir="models/serving_bundle", alias="production"):
     print(f"registered {MODEL_NAME} v{info.registered_model_version} -> @{alias}")
     return info
 
+# export the model at build time
+def export(dst="model_artifact", alias="production"):
+    import os
+    mlflow.set_tracking_uri(TRACKING_URI)
+    os.makedirs(dst, exist_ok=True)
+    path = mlflow.artifacts.download_artifacts(
+        artifact_uri=f"models:/{MODEL_NAME}@{alias}", dst_path=dst)
+    print("exported ->", path)
+    return path
 
 if __name__ == "__main__":
     register()

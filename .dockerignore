@@ -1,0 +1,13 @@
+.venv/
+mlruns/
+mlflow.db
+data/
+notebooks/
+notebooks_t/
+reference/
+*.pdf
+__pycache__/
+*.pyc
+.git/
+.pytest_cache/
+scratch_*.py

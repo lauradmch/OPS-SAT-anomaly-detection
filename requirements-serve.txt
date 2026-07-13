@@ -1,0 +1,8 @@
+mlflow==3.14.0
+numpy>=2,<3
+scipy
+scikit-learn
+pandas<3
+joblib
+fastapi
+uvicorn[standard]

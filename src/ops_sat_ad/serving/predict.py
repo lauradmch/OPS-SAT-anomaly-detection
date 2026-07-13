@@ -60,6 +60,7 @@ def predict_segment(bundle: Bundle, channel: str, values) -> dict:
 
 
 def load_bundle(bundle_dir="models/serving_bundle") -> Bundle:
+    bundle_dir = str(bundle_dir).replace("\\", "/")     # Windows-logged path -> POSIX
     refs = joblib.load(os.path.join(bundle_dir, "refs.joblib"))
     model = Conv1dAE(bottleneck=refs["bottleneck"])
     model.load_state_dict(torch.load(os.path.join(bundle_dir, "conv1d_ae.pt"),
