@@ -1,0 +1,23 @@
+artifact_path: file:C:/Users/llaur/Desktop/ops-sat-anomaly-detection/mlruns/2/models/m-c82dd1af33614a70bc3ba2e8f5b37e50/artifacts
+flavors:
+  python_function:
+    artifacts:
+      bundle:
+        path: artifacts\serving_bundle
+        uri: models/serving_bundle
+    cloudpickle_version: 3.1.2
+    code: null
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pyfunc.model
+    python_model: python_model.pkl
+    python_version: 3.12.10
+    streamable: false
+mlflow_version: 3.14.0
+model_id: m-c82dd1af33614a70bc3ba2e8f5b37e50
+model_size_bytes: 102835
+model_uuid: m-c82dd1af33614a70bc3ba2e8f5b37e50
+prompts: null
+run_id: 896beedc76c24a57b1cf7aa315fef6c0
+utc_time_created: '2026-07-12 19:12:30.115320'
