@@ -5,6 +5,7 @@ import pandas as pd
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
+from ops_sat_ad.serving.report import render_report
 
 # API's model URI env-driven -> code loads the alias locally or a local path in the container
 MODEL_URI = os.getenv("MODEL_URI", "models:/ops-sat-anomaly-detector@production")
@@ -49,3 +50,18 @@ def health():
 def predict(req: SegmentRequest):
     df = pd.DataFrame([req.model_dump()])
     return state["model"].predict(df)[0]
+
+class ReportResponse(BaseModel):
+    channel: str
+    report: str
+    type_hint: str
+    is_anomaly: bool
+    faithful: bool
+    offending_numbers: list[str]
+    generator: str
+
+@app.post("/report", response_model=ReportResponse)
+def report(req: SegmentRequest):
+    df = pd.DataFrame([req.model_dump()])
+    pred = state["model"].predict(df)[0]   # reuse the loaded detector
+    return render_report(pred)
