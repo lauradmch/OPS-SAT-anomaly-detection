@@ -180,7 +180,10 @@ def render_report(pred: dict, narrator: "Narrator | None" = None, margin: float 
         narrative, report = compose(narrator)
         faithful, offending = faithfulness_check(report, facts)
     except Exception:
-        used = TemplateNarrator()          # API failure -> deterministic fallback
+        faithful, offending = False, []    # API failure -> force deterministic fallback
+
+    if not faithful:                       # unfaithful output OR narrator error -> fall back
+        used = TemplateNarrator()          # grounded, number-free default
         narrative, report = compose(used)
         faithful, offending = faithfulness_check(report, facts)
 
