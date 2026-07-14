@@ -79,6 +79,13 @@ def _prompts(pred: dict, type_hint: str) -> tuple[str, str]:
     return system, user
 
 
+class Narrator(Protocol):
+    """Structural type for report narrators: any object exposing `name` and `narrate`."""
+    name: str
+
+    def narrate(self, pred: dict, type_hint: str) -> str: ...
+
+
 class TemplateNarrator:
     name = "template"
 
