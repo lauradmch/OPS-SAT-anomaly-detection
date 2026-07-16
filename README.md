@@ -41,13 +41,17 @@ of the work: anomalies are **concentrated** (76% of test anomalies live in 3 of
 9 channels) which is why any single pooled metric is misleading and everything
 downstream is reported per channel.
 
-### 2. Feature-based baselines (and a leakage fix)
+### 2. Feature-based baselines
 
 Per-segment tabular features (`data/dataset.csv`) with Gradient Boosting Machine
-(GBM) and Isolation Forest baselines. A **metadata-leakage** bug was identified and
-fixed: the segment's duration/length are an artifact from the human annotation 
-process itself. These baselines established that duration/length features become
-predictive.
+(GBM) and Isolation Forest baselines. Segment length is set by a human rater splitting 
+channels into periods (Ruszczak et al. 2023, §2.1), so len/duration encode both real 
+anomaly duration (collective anomalies are intrinsically extended) and annotation-
+window choice. These sources are confounded and not identifiable from the data. 
+The baselines are metadata-only control establishing how much AUCPR is achievable from 
+segment geometry alone (found: 0.485). The served model excludes length-derived 
+features to remain robust to client-side segmentation, which may differ from the 
+annotators' windowing.
 
 ### 3. Within-segment high-pass detector
 
