@@ -1,9 +1,9 @@
 # OPS-SAT telemetry anomaly detection
 
 Anomaly detection on segmented spacecraft telemetry from the ESA **OPS-SAT**
-benchmark (Kotowski et al., *Scientific Data* 2025, `s41597-025-05035-3`). Each
-telemetry channel is cut into variable-length **segments**; the task is to flag
-anomalous segments per channel.
+benchmark (Ruszczak et al., *Scientific Data* 2025 [^paper]; dataset [^data]).
+Each telemetry channel is cut into variable-length **segments**; the task is to
+flag anomalous segments per channel.
 
 The deliverable is a small deployable detector: a semi-supervised
 Conv1D autoencoder with a template-free high-pass detector, served behind a
@@ -45,7 +45,7 @@ downstream is reported per channel.
 
 Per-segment tabular features (`data/dataset.csv`) with Gradient Boosting Machine
 (GBM) and Isolation Forest baselines. Segment length is set by a human rater splitting 
-channels into periods (Ruszczak et al. 2023, §2.1), so len/duration encode both real 
+channels into periods (Ruszczak et al. 2023 [^conf], §2.1), so len/duration encode both real 
 anomaly duration (collective anomalies are intrinsically extended) and annotation-
 window choice. These sources are confounded and not identifiable from the data. 
 The baselines are metadata-only control establishing how much AUCPR is achievable from 
@@ -109,12 +109,12 @@ report also names the *dominant driver* inferred deterministically (never
 by the LLM): **shape** (`ae_pct > hp_pct`) vs
 **transient** (`hp_pct > ae_pct`) vs **mixed**.
 
-## Why the naive result was wrong (and how it was fixed)
+## Observations and Recommandation
 
 The first AE run reported pooled AUROC **0.958**, apparently beating every
-unsupervised baseline in the paper. Three symptoms exposed it as inflated:
+unsupervised baseline in the paper. Three signs of inflated results:
 
-1. **Pooled ≠ honest.** A single pooled AUC is dominated by base-rate
+1. **Pooled vs macro.** A single pooled AUC is dominated by base-rate
    concentration (76% of anomalies in 3 easy channels). The **macro** AUROC is
    **0.83**, which place it in the paper's unsupervised band, not above it. 
    Fix: report macro.
@@ -131,7 +131,15 @@ correlated with the label (−0.24) so a length detector scores **0.26** (worse
 than chance) while the AE scores **0.907**. The +0.64 jump hints the AE learned
 waveform shape, not duration.
 
-## Detectability = anomaly type × channel SNR
+### Recommendations
+Report **macro, not pooled**. Use the **AE + high-pass rank-mean ensemble** when
+robustness matters as it patches both failure modes. Prefer the **high-pass alone**
+when on-board compute/simplicity dominates: it is statistically tied with the
+ensemble, needs no training or GPU, and OPS-SAT explicitly targets on-board
+deployability. At the current test size, per-channel anomaly counts as low as 5 so 
+differences below ~0.05 are within sampling noise.
+
+### Detectability = anomaly type × channel SNR
 
 A reconstruction AE flags an anomaly only when its contribution to the error 
 rises above the channel's noise floor. On clean channels (CADC0888) spikes stand 
@@ -140,14 +148,66 @@ noise the AE never reproduces, so it fails (AUROC 0.464) and the high-pass parti
 rescues it (0.643). Next step: a per-channel denoising front-end or a period-
 aware detector.
 
-## Recommendation
+## Directory structure
 
-Report **macro, not pooled**. Use the **AE + high-pass rank-mean ensemble** when
-robustness matters as it patches both failure modes. Prefer the **high-pass alone**
-when on-board compute/simplicity dominates: it is statistically tied with the
-ensemble, needs no training or GPU, and OPS-SAT explicitly targets on-board
-deployability. At the current test size, per-channel anomaly counts as low as 5 so 
-differences below ~0.05 are within sampling noise.
+```
+ops-sat-anomaly-detection/
+├── api/
+│   └── main.py                 # FastAPI app: /predict, /report, /health
+├── src/ops_sat_ad/             # installable package
+│   ├── config.py               # paths, constants, hyperparameters
+│   ├── data.py                 # loading, segmentation, train/test split
+│   ├── evaluate.py             # macro AUROC/AUCPR, bootstrap CIs, null model
+│   ├── models/
+│   │   ├── autoencoder.py      # Conv1D-AE, resample, recon error, HP score
+│   │   ├── baseline.py         # feature-based baseline scaffolding
+│   │   ├── gbm_model.py        # Gradient Boosting baseline
+│   │   ├── isolation_forest_model.py
+│   │   ├── kalman.py           # Kalman residual experiment
+│   │   ├── residual_detector.py# Savitzky–Golay high-pass detector
+│   │   └── thresholding_gbm.py # GBM threshold calibration
+│   └── serving/
+│       ├── artifacts.py        # build/save the serving bundle
+│       ├── predict.py          # inductive ECDF fusion (online scoring)
+│       ├── register.py         # MLflow pyfunc registration
+│       └── report.py           # grounded NLG report + faithfulness checker
+├── data/
+│   ├── segments.csv            # raw per-segment time series (benchmark)
+│   └── dataset.csv             # per-segment tabular features
+├── models/serving_bundle/      # deployable bundle (weights + refs.joblib)
+├── model_artifact/             # MLflow-logged pyfunc model
+├── notebooks/                  # final analysis + findings write-ups
+│   ├── conv1d_autoencoder.ipynb
+│   ├── 04_conv1d_ae_findings.md
+│   └── 06_report_nlg_findings.md
+├── notebooks_t/                # exploratory / scratch notebooks
+├── reference/                  # upstream OPS-SAT-AD code & data README
+├── tests/                      # pytest: predict + report
+├── Dockerfile                  # serving image
+├── MODEL_CARD.md               # model card
+├── mlflow.db                   # MLflow tracking store (sqlite)
+├── conv1d_ae.pt                # trained AE weights
+├── requirements.txt            # full dev/training deps
+├── requirements-serve.txt      # minimal serving deps
+└── pyproject.toml              # package + tooling config
+```
+
+## Data
+
+The dataset (`data/segments.csv`, `data/dataset.csv`) is the **OPSSAT-AD**
+benchmark by Ruszczak et al., released under MIT license via the
+repository [kplabs-pl/OPS-SAT-AD](https://github.com/kplabs-pl/OPS-SAT-AD). 
+It contains telemetry from ESA's OPS-SAT, the first flying nanosatellite laboratory.
+
+```bibtex
+@article{ruszczak2025opssat,
+  title   = {The OPS-SAT benchmark for detecting anomalies in satellite telemetry},
+  author  = {Ruszczak, Bogdan and Kotowski, Krzysztof and Evans, David and Nalepa, Jakub},
+  journal = {Scientific Data},
+  year    = {2025},
+  doi     = {10.1038/s41597-025-05035-3}
+}
+```
 
 ## Run
 
@@ -163,3 +223,11 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db                    # view runs
 uvicorn api.main:app --reload
 # POST /predict and POST /report with {"channel": "CADC0872", "values": [...]}
 ```
+
+## References
+
+[^paper]: Ruszczak, B., Kotowski, K., Evans, D., Nalepa, J. (2025). *The OPS-SAT benchmark for detecting anomalies in satellite telemetry.* Scientific Data, Springer Nature. DOI: [10.1038/s41597-025-05035-3](https://doi.org/10.1038/s41597-025-05035-3).
+
+[^data]: OPSSAT-AD — anomaly detection dataset for satellite telemetry. Zenodo. DOI: [10.5281/zenodo.12588359](https://doi.org/10.5281/zenodo.12588359). Code: [kplabs-pl/OPS-SAT-AD](https://github.com/kplabs-pl/OPS-SAT-AD) (MIT license).
+
+[^conf]: Ruszczak, B., Kotowski, K., Andrzejewski, J., et al. (2023). *Machine Learning Detects Anomalies in OPS-SAT Telemetry.* Computational Science – ICCS 2023, LNCS vol. 14073, Springer, Cham. DOI: [10.1007/978-3-031-35995-8_21](https://doi.org/10.1007/978-3-031-35995-8_21).
