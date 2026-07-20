@@ -1,0 +1,14 @@
+* text=auto
+
+*.py    text eol=lf
+*.md    text eol=lf
+*.yml   text eol=lf
+*.csv   text eol=lf
+*.ps1   text eol=crlf
+
+*.pt    binary
+*.pkl   binary
+*.joblib binary
+*.db    binary
+*.pdf   binary
+*.png   binary
