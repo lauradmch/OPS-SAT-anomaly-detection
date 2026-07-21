@@ -9,7 +9,7 @@ from sklearn.metrics import recall_score
 
 from ops_sat_ad.evaluate import evaluate
 from ops_sat_ad.models.baseline import load_dataset
-from ops_sat_ad.models.gbm_model import FEATURE_COLS
+from ops_sat_ad.models.gbm_model import SHAPE_COLS, LENGTH_COLS
 
 TARGET_RECALL = 0.90
 EXCLUDE_CHANNELS = {"CADC0884", "CADC0886", "CADC0890"}  # D5: too few test anomalies
@@ -30,7 +30,8 @@ def threshold_for_recall(y_true, y_score, target_recall):
     return y_score.min() 
 
 
-def run_thresholding(df, feature_cols=FEATURE_COLS, target_recall=TARGET_RECALL):
+def run_thresholding(df, include_length=False, target_recall=TARGET_RECALL):
+    feature_cols = SHAPE_COLS + (LENGTH_COLS if include_length else [])
     train, test = df[df["train"]==1], df[df["train"]==0]
     X_train, y_train, groups = train[feature_cols], train["anomaly"], train["channel"]
     X_test, y_test = test[feature_cols], test["anomaly"]
@@ -54,14 +55,17 @@ def run_thresholding(df, feature_cols=FEATURE_COLS, target_recall=TARGET_RECALL)
     overall = evaluate(y_test.values, y_pred_test, y_score_test)
 
     mlflow.set_experiment("ops-sat-anomaly-detection")
-    with mlflow.start_run(run_name="day2_gbm_thresholded"):
-        mlflow.set_tags({"model_family": "gbm", "feature_set": "paper_18", "cv_scheme": "groupkfold_channel"})
+    variant = "full_features" if include_length else "shape_only_features"
+    run_name = f"gbm_thresholded_{variant}"
+    csv_path = f"feature_importances_{variant}.csv" 
+    with mlflow.start_run(run_name=run_name):
+        mlflow.set_tags({"model_family": "gbm", "feature_set": variant, "cv_scheme": "groupkfold_channel"})
         mlflow.log_params({"target_recall": target_recall, "threshold": threshold})
         mlflow.log_metrics(overall)
         mlflow.lightgbm.log_model(
             final_model,
             artifact_path="model",
-            registered_model_name="ops-sat-anomaly-detector",
+            #registered_model_name="ops-sat-gbm-baseline",
         )
 
     return final_model, threshold, overall, test.assign(y_score=y_score_test, y_pred=y_pred_test)

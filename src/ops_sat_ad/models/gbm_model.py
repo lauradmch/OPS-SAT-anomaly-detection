@@ -7,15 +7,31 @@ import lightgbm as lgb
 from ops_sat_ad.evaluate import evaluate
 from ops_sat_ad.models.baseline import load_dataset
 
-FEATURE_COLS = [
+SHAPE_COLS =  [
     "mean", "var", "std", "kurtosis", "skew", "n_peaks",
     "smooth10_n_peaks", "smooth20_n_peaks", "diff_peaks", "diff2_peaks",
-    "diff_var", "diff2_var", "gaps_squared", "len_weighted",
-    "var_div_duration", "var_div_len", "len", "duration", #,"sampling",
+    "diff_var", "diff2_var", "gaps_squared"
 ]
+LENGTH_COLS = ["len", "duration", "len_weighted", "var_div_duration", "var_div_len"]
+
+#COUNT_COLS = ["n_peaks", "smooth10_n_peaks", "smooth20_n_peaks",
+#              "diff_peaks", "diff2_peaks"]
+
+#def add_rate_cols(df):
+#    out = df.copy()
+#    for c in COUNT_COLS:
+#        out[f"{c}_rate"] = out[c] / out["len"]
+#    return out
+#RATE_COLS  = [f"{c}_rate" for c in COUNT_COLS]
+#SHAPE_COLS = ["mean", "var", "std", "kurtosis", "skew",
+#              "diff_var", "diff2_var", "gaps_squared"] + COUNT_COLS
+#FAIR_COLS  = ["mean", "var", "std", "kurtosis", "skew",
+#              "diff_var", "diff2_var", "gaps_squared"] + RATE_COLS
 
 
-def run_full_model(df, feature_cols=FEATURE_COLS):
+
+def run_full_model(df, include_length=False):
+    feature_cols = SHAPE_COLS + (LENGTH_COLS if include_length else [])
     train = df[df["train"]==1]
     test = df[df["train"]==0]
 
@@ -23,10 +39,13 @@ def run_full_model(df, feature_cols=FEATURE_COLS):
     X_test, y_test = test[feature_cols], test["anomaly"]
 
     mlflow.set_experiment("ops-sat-anomaly-detection")
-    with mlflow.start_run(run_name="day2_full_features"):
+    variant = "full_features" if include_length else "shape_only_features"
+    run_name = f"gbm_{variant}"
+    csv_path = f"feature_importances_{variant}.csv" 
+    with mlflow.start_run(run_name=run_name):
         mlflow.set_tags({
             "model_family": "gbm",
-            "feature_set": "full_18",
+            "feature_set": variant,
             "cv_scheme": "fixed_split",
         })
         mlflow.log_param("features", feature_cols)
@@ -43,8 +62,8 @@ def run_full_model(df, feature_cols=FEATURE_COLS):
         # log importances as an artifact
         importances = pd.Series(model.feature_importances_, index=feature_cols).sort_values(ascending=False)
         print("\nFeature importances:\n", importances)
-        importances.to_csv("feature_importances_full.csv")
-        mlflow.log_artifact("feature_importances_full.csv")
+        importances.to_csv(csv_path)
+        mlflow.log_artifact(csv_path)
 
     return results, importances
 
